@@ -1,0 +1,1 @@
+web: gunicorn splitter.wsgi --log-file - 

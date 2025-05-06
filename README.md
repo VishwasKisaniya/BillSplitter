@@ -1,48 +1,74 @@
 # Bill Splitter App
 
-A web application to split bills among friends and groups, built with Django.
+A web application to split bills among friends, track payments, and send UPI payment requests.
 
 ## Features
 
-- User authentication and registration with phone numbers
-- Create groups with friends using their phone numbers
-- Add bills to groups and split them equally or with custom amounts
-- Track balances with friends
-- Payment simulation with redirects to payment methods (Amazon Pay, Google Pay, Paytm, etc.)
-- Dashboard to view all bills, groups, and balances
+- User registration and authentication
+- Create groups with friends
+- Add bills to groups
+- Split bills equally or custom amounts
+- Track who has paid and who still owes money
+- UPI payment integration with QR codes
+- Mobile-friendly design
 
-## Installation
+## Tech Stack
 
-1. Clone the repository
-2. Install dependencies:
-   ```
-   pip install -r requirements.txt
-   ```
-3. Run migrations:
-   ```
-   python3 manage.py makemigrations
-   python3 manage.py migrate
-   ```
-4. Create a superuser:
-   ```
-   python3 manage.py createsuperuser
-   ```
-5. Run the development server:
-   ```
-   python3 manage.py runserver
-   ```
+- Django web framework
+- SQLite (local development) / PostgreSQL (production)
+- Bootstrap 5 for responsive design
+- UPI payment integration
 
-## Usage
+## Local Development Setup
 
-1. Register with your phone number
-2. Create a group and add friends using their phone numbers
-3. Create a bill and choose how to split it
-4. View your balances with friends
-5. Pay your bills by selecting a payment method
+1. Clone the repository:
+```
+git clone https://github.com/yourusername/bill-splitter.git
+cd bill-splitter
+```
 
-## Technology Stack
+2. Create and activate a virtual environment:
+```
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+```
 
-- **Backend**: Django
-- **Frontend**: HTML, CSS, Bootstrap 5
-- **Database**: SQLite (default Django database)
-- **Forms**: django-crispy-forms with Bootstrap 5 
+3. Install dependencies:
+```
+pip install -r requirements.txt
+```
+
+4. Run migrations:
+```
+python manage.py migrate
+```
+
+5. Create a superuser (optional):
+```
+python manage.py createsuperuser
+```
+
+6. Run the development server:
+```
+python manage.py runserver
+```
+
+7. Access the application at http://127.0.0.1:8000/
+
+## Deployment on Render
+
+1. Create a new Web Service on Render
+2. Link to your GitHub repository
+3. Use these settings:
+   - **Build Command**: `./build.sh`
+   - **Start Command**: `gunicorn splitter.wsgi:application`
+   - **Environment Variables**:
+     - `SECRET_KEY`: [Generate a secure key]
+     - `DEBUG`: False
+     - `ALLOWED_HOSTS`: yourdomain.onrender.com
+4. Add a PostgreSQL database and Render will automatically set the DATABASE_URL
+5. Deploy!
+
+## License
+
+MIT 
