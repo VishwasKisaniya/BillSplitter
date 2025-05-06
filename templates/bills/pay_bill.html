@@ -1,0 +1,104 @@
+{% extends 'bills/base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Pay Bill | Bill Splitter{% endblock %}
+
+{% block header %}Pay Bill{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 mx-auto">
+        <div class="card shadow">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Pay Bill: {{ bill_split.bill.title }}</h6>
+            </div>
+            <div class="card-body">
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <h5>Bill Details</h5>
+                        <p><strong>Title:</strong> {{ bill_split.bill.title }}</p>
+                        <p><strong>Description:</strong> {{ bill_split.bill.description }}</p>
+                        <p><strong>Created by:</strong> {{ bill_split.bill.created_by.username }}</p>
+                        <p><strong>Group:</strong> {{ bill_split.bill.group.name }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <h5>Payment Details</h5>
+                        <p><strong>Your Share:</strong> ₹{{ bill_split.amount }}</p>
+                        <p><strong>Total Bill:</strong> ₹{{ bill_split.bill.amount }}</p>
+                        {% if recipient_upi_id %}
+                        <p><strong>Recipient's UPI ID:</strong> {{ recipient_upi_id }}</p>
+                        {% else %}
+                        <p class="text-warning"><strong>Note:</strong> Recipient hasn't set a UPI ID yet.</p>
+                        {% endif %}
+                        <p><strong>Payment Status:</strong> 
+                            {% if bill_split.is_paid %}
+                            <span class="badge bg-success">Paid</span>
+                            {% else %}
+                            <span class="badge bg-warning">Pending</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+
+                <form method="post">
+                    {% csrf_token %}
+                    <h5 class="mb-3">Choose Payment Method</h5>
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            <div class="payment-options">
+                                {% if recipient_upi_id %}
+                                <div class="form-check mb-3">
+                                    <input class="form-check-input" type="radio" name="{{ form.payment_method.name }}" id="upi" value="UPI" checked>
+                                    <label class="form-check-label d-flex align-items-center" for="upi">
+                                        <span class="me-2">UPI Payment</span>
+                                        <i class="fas fa-mobile-alt fa-lg text-success"></i>
+                                    </label>
+                                </div>
+                                {% endif %}
+                                <div class="form-check mb-3">
+                                    <input class="form-check-input" type="radio" name="{{ form.payment_method.name }}" id="amazonpay" value="AMAZON" {% if not recipient_upi_id %}checked{% endif %}>
+                                    <label class="form-check-label d-flex align-items-center" for="amazonpay">
+                                        <span class="me-2">Amazon Pay</span>
+                                        <i class="fab fa-amazon fa-lg text-warning"></i>
+                                    </label>
+                                </div>
+                                <div class="form-check mb-3">
+                                    <input class="form-check-input" type="radio" name="{{ form.payment_method.name }}" id="gpay" value="GPAY">
+                                    <label class="form-check-label d-flex align-items-center" for="gpay">
+                                        <span class="me-2">Google Pay</span>
+                                        <i class="fab fa-google-pay fa-lg text-primary"></i>
+                                    </label>
+                                </div>
+                                <div class="form-check mb-3">
+                                    <input class="form-check-input" type="radio" name="{{ form.payment_method.name }}" id="paytm" value="PAYTM">
+                                    <label class="form-check-label d-flex align-items-center" for="paytm">
+                                        <span class="me-2">Paytm</span>
+                                        <i class="fas fa-wallet fa-lg text-info"></i>
+                                    </label>
+                                </div>
+                                <div class="form-check mb-3">
+                                    <input class="form-check-input" type="radio" name="{{ form.payment_method.name }}" id="other" value="OTHER">
+                                    <label class="form-check-label d-flex align-items-center" for="other">
+                                        <span class="me-2">Other</span>
+                                        <i class="fas fa-money-bill-wave fa-lg text-success"></i>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group d-none">
+                        {{ form.amount|as_crispy_field }}
+                    </div>
+
+                    <div class="d-grid gap-2 mt-4">
+                        <button type="submit" class="btn btn-success btn-lg">
+                            <i class="fas fa-credit-card me-2"></i> Pay ₹{{ bill_split.amount }}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

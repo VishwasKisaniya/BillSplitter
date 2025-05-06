@@ -1,0 +1,30 @@
+{% extends 'bills/base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Register | Bill Splitter{% endblock %}
+
+{% block auth_content %}
+<div class="row">
+    <div class="col-md-6 mx-auto">
+        <div class="card auth-card">
+            <div class="card-header bg-gradient-primary text-white text-center">
+                <h4 class="mb-0">Bill Splitter</h4>
+            </div>
+            <div class="card-body p-4">
+                <h4 class="text-center mb-4">Create an Account</h4>
+                <form method="post">
+                    {% csrf_token %}
+                    {{ form|crispy }}
+                    <div class="d-grid gap-2 mt-4">
+                        <button class="btn btn-primary btn-lg" type="submit">Register</button>
+                    </div>
+                </form>
+                <hr class="my-4">
+                <div class="text-center">
+                    <a class="small" href="{% url 'login' %}">Already have an account? Login!</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

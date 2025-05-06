@@ -1,0 +1,31 @@
+{% extends 'bills/base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Create Group | Bill Splitter{% endblock %}
+
+{% block header %}Create Group{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 mx-auto">
+        <div class="card shadow">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Create a New Group</h6>
+            </div>
+            <div class="card-body">
+                <p class="mb-4">Create a group to split bills with your friends or colleagues. After creating a group, you can add members by their phone numbers.</p>
+                
+                <form method="post">
+                    {% csrf_token %}
+                    {{ form|crispy }}
+                    <div class="d-grid gap-2 mt-4">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="fas fa-users me-2"></i> Create Group
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

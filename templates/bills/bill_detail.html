@@ -1,0 +1,123 @@
+{% extends 'bills/base.html' %}
+{% load bill_filters %}
+
+{% block title %}{{ bill.title }} | Bill Splitter{% endblock %}
+
+{% block header %}Bill: {{ bill.title }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                <h6 class="m-0 font-weight-bold text-primary">Bill Details</h6>
+                <div>
+                    {% if request.user == bill.created_by %}
+                    <a href="{% url 'create_bill_split' bill.id %}" class="btn btn-sm btn-warning">
+                        <i class="fas fa-edit"></i> Edit Split
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>Title:</strong> {{ bill.title }}</p>
+                        <p><strong>Amount:</strong> ₹{{ bill.amount }}</p>
+                        <p><strong>Created By:</strong> {{ bill.created_by.username }}</p>
+                        <p><strong>Created On:</strong> {{ bill.created_at|date:"F d, Y" }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Group:</strong> {{ bill.group.name }}</p>
+                        <p><strong>Description:</strong> {{ bill.description }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="card shadow">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Bill Splits</h6>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Member</th>
+                                <th>Amount</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for split in splits %}
+                            <tr>
+                                <td>{{ split.user.username }}</td>
+                                <td>₹{{ split.amount }}</td>
+                                <td>
+                                    {% if split.is_paid %}
+                                    <span class="badge bg-success">Paid</span>
+                                    <small class="text-muted">{{ split.paid_at|date }}</small>
+                                    {% else %}
+                                    <span class="badge bg-warning">Pending</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if not split.is_paid and split.user == request.user and request.user != bill.created_by %}
+                                    <a href="{% url 'pay_bill' split.id %}" class="btn btn-sm btn-success">
+                                        <i class="fas fa-money-bill"></i> Pay
+                                    </a>
+                                    {% elif not split.is_paid and split.user == request.user and request.user == bill.created_by %}
+                                    <span class="badge bg-info">You created this bill</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="card shadow">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Payment Status</h6>
+            </div>
+            <div class="card-body">
+                <div class="progress">
+                    {% with paid_count=0 %}
+                        {% for split in splits %}
+                            {% if split.is_paid %}
+                                {% with paid_count=paid_count|add:1 %}{% endwith %}
+                            {% endif %}
+                        {% endfor %}
+                        
+                        {% if splits.count > 0 %}
+                            {% with percentage=paid_count|mul:100|floordiv:splits.count %}
+                                <div class="progress-bar bg-success" role="progressbar" style="width: {{ percentage }}%" 
+                                    aria-valuenow="{{ percentage }}" aria-valuemin="0" aria-valuemax="100">
+                                    {{ percentage }}% Paid
+                                </div>
+                            {% endwith %}
+                        {% endif %}
+                    {% endwith %}
+                </div>
+                <div class="text-center mt-3">
+                    <a href="{% url 'group_detail' group.id %}" class="btn btn-primary">
+                        <i class="fas fa-users"></i> Back to Group
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

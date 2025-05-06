@@ -1,0 +1,210 @@
+{% extends 'bills/base.html' %}
+{% load bill_filters %}
+
+{% block title %}Dashboard | Bill Splitter{% endblock %}
+
+{% block header %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Summary Cards -->
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-primary shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                            Your Groups
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ groups.count }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-users fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-warning shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                            Bills to Pay
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ bills_to_pay.count }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-file-invoice-dollar fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-success shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                            Payments to Receive
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ bills_to_receive.count }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-dollar-sign fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-info shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                            Total Balances
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ balances|length }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-balance-scale fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Groups Section -->
+<div class="card shadow mb-4">
+    <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+        <h6 class="m-0 font-weight-bold text-primary">Your Groups</h6>
+        <a href="{% url 'create_group' %}" class="btn btn-sm btn-primary">
+            <i class="fas fa-plus"></i> Create Group
+        </a>
+    </div>
+    <div class="card-body">
+        {% if groups %}
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Members</th>
+                        <th>Created</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for group in groups %}
+                    <tr>
+                        <td>{{ group.name }}</td>
+                        <td>{{ group.members.count }}</td>
+                        <td>{{ group.created_at|date }}</td>
+                        <td>
+                            <a href="{% url 'group_detail' group.id %}" class="btn btn-sm btn-info">
+                                <i class="fas fa-eye"></i> View
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="text-center">You haven't created any groups yet. <a href="{% url 'create_group' %}">Create your first group!</a></p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Bills To Pay Section -->
+<div class="card shadow mb-4">
+    <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+        <h6 class="m-0 font-weight-bold text-warning">Bills To Pay</h6>
+    </div>
+    <div class="card-body">
+        {% if bills_to_pay %}
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Bill</th>
+                        <th>Group</th>
+                        <th>Amount</th>
+                        <th>Created By</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for split in bills_to_pay %}
+                    <tr>
+                        <td>{{ split.bill.title }}</td>
+                        <td>{{ split.bill.group.name }}</td>
+                        <td>${{ split.amount }}</td>
+                        <td>{{ split.bill.created_by.username }}</td>
+                        <td>
+                            <a href="{% url 'pay_bill' split.id %}" class="btn btn-sm btn-success">
+                                <i class="fas fa-dollar-sign"></i> Pay
+                            </a>
+                            <a href="{% url 'bill_detail' split.bill.id %}" class="btn btn-sm btn-info">
+                                <i class="fas fa-eye"></i> View
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="text-center">No bills to pay at the moment.</p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Balances Section -->
+<div class="card shadow mb-4">
+    <div class="card-header py-3">
+        <h6 class="m-0 font-weight-bold text-primary">Balances with Friends</h6>
+    </div>
+    <div class="card-body">
+        {% if balances %}
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Friend</th>
+                        <th>Balance</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user, amount in balances %}
+                    <tr>
+                        <td>{{ user.username }}</td>
+                        <td>${{ amount|abs_value }}</td>
+                        <td>
+                            {% if amount > 0 %}
+                            <span class="badge bg-success">You are owed</span>
+                            {% elif amount < 0 %}
+                            <span class="badge bg-danger">You owe</span>
+                            {% else %}
+                            <span class="badge bg-secondary">Settled</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="text-center">No balances with friends yet.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %} 

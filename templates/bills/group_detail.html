@@ -1,0 +1,99 @@
+{% extends 'bills/base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}{{ group.name }} | Bill Splitter{% endblock %}
+
+{% block header %}Group: {{ group.name }}{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card shadow">
+            <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                <h6 class="m-0 font-weight-bold text-primary">Group Details</h6>
+                <div>
+                    <a href="{% url 'create_bill_group' group.id %}" class="btn btn-sm btn-success">
+                        <i class="fas fa-plus"></i> Add Bill
+                    </a>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>Group Name:</strong> {{ group.name }}</p>
+                        <p><strong>Created By:</strong> {{ group.created_by.username }}</p>
+                        <p><strong>Created On:</strong> {{ group.created_at|date:"F d, Y" }}</p>
+                        <p><strong>Total Members:</strong> {{ group.members.count }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <h5>Members</h5>
+                        <ul class="list-group">
+                            {% for member in group.members.all %}
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                {{ member.username }}
+                                {% if member == group.created_by %}
+                                <span class="badge bg-primary">Creator</span>
+                                {% endif %}
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card shadow">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Add Member</h6>
+            </div>
+            <div class="card-body">
+                <p>Add a member to this group using their phone number.</p>
+                <form method="post">
+                    {% csrf_token %}
+                    {{ form|crispy }}
+                    <div class="d-grid gap-2 mt-3">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-user-plus"></i> Add Member
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card shadow">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Group Bills</h6>
+            </div>
+            <div class="card-body">
+                {% if bills %}
+                <div class="list-group">
+                    {% for bill in bills %}
+                    <a href="{% url 'bill_detail' bill.id %}" class="list-group-item list-group-item-action">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h5 class="mb-1">{{ bill.title }}</h5>
+                            <span>${{ bill.amount }}</span>
+                        </div>
+                        <p class="mb-1">{{ bill.description|truncatechars:100 }}</p>
+                        <small>Created by {{ bill.created_by.username }} on {{ bill.created_at|date }}</small>
+                    </a>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-center">No bills have been created in this group yet.</p>
+                <div class="d-grid gap-2">
+                    <a href="{% url 'create_bill_group' group.id %}" class="btn btn-success">
+                        <i class="fas fa-plus"></i> Add a Bill
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

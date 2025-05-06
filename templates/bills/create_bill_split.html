@@ -1,0 +1,209 @@
+{% extends 'bills/base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Split Bill | Bill Splitter{% endblock %}
+
+{% block header %}Split Bill: {{ bill.title }}{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card shadow">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Bill Details</h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>Title:</strong> {{ bill.title }}</p>
+                        <p><strong>Description:</strong> {{ bill.description }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Amount:</strong> ${{ bill.amount }}</p>
+                        <p><strong>Group:</strong> {{ group.name }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="card shadow">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Split the Bill</h6>
+            </div>
+            <div class="card-body">
+                <form method="post" id="splitForm">
+                    {% csrf_token %}
+                    
+                    <!-- Split Type Selection -->
+                    <div class="mb-4">
+                        <label class="form-label d-block mb-2"><strong>Split Type</strong></label>
+                        <div class="btn-group" role="group">
+                            <input type="radio" class="btn-check" name="split_type" id="equal" value="equal" {% if form.split_type.value == 'equal' %}checked{% endif %} autocomplete="off">
+                            <label class="btn btn-outline-primary" for="equal">Equal Split</label>
+                            
+                            <input type="radio" class="btn-check" name="split_type" id="custom" value="custom" {% if form.split_type.value == 'custom' %}checked{% endif %} autocomplete="off">
+                            <label class="btn btn-outline-primary" for="custom">Custom Split</label>
+                        </div>
+                    </div>
+                    
+                    <!-- Members Selection -->
+                    <div class="mb-4">
+                        <label class="form-label d-block"><strong>Select Members to Split With</strong></label>
+                        <p class="text-muted small">Total bill amount: ${{ bill.amount }}</p>
+                        
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Member</th>
+                                    <th>Include</th>
+                                    <th class="custom-amounts" style="display: none;">Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for member in group.members.all %}
+                                <tr>
+                                    <td>{{ member.username }}</td>
+                                    <td>
+                                        <div class="form-check">
+                                            <input class="form-check-input member-checkbox" type="checkbox" 
+                                                   name="member_{{ member.id }}" 
+                                                   id="member_{{ member.id }}"
+                                                   {% if form.initial.member == None or form.initial.member == True %}checked{% endif %}>
+                                        </div>
+                                    </td>
+                                    <td class="custom-amounts" style="display: none;">
+                                        <input type="number" step="0.01" min="0" 
+                                               name="amount_{{ member.id }}" 
+                                               id="amount_{{ member.id }}"
+                                               class="form-control amount-input"
+                                               placeholder="0.00">
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                            <tfoot class="custom-amounts" style="display: none;">
+                                <tr class="table-info">
+                                    <td><strong>Total</strong></td>
+                                    <td></td>
+                                    <td>$<span id="totalAmount">0.00</span></td>
+                                </tr>
+                                <tr id="amountWarning" style="display: none;" class="table-danger">
+                                    <td colspan="3" class="text-center">
+                                        <div class="alert alert-danger mb-0">
+                                            The total amount doesn't match the bill amount of ${{ bill.amount }}
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                    
+                    <div class="d-grid gap-2 mt-4">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="fas fa-money-bill-wave me-2"></i> Split Bill
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Get elements
+        const equalRadio = document.getElementById('equal');
+        const customRadio = document.getElementById('custom');
+        const customAmountCells = document.querySelectorAll('.custom-amounts');
+        const amountInputs = document.querySelectorAll('.amount-input');
+        const totalAmountSpan = document.getElementById('totalAmount');
+        const amountWarning = document.getElementById('amountWarning');
+        const billAmount = {{ bill.amount }};
+        
+        // Function to toggle custom amount cells
+        function toggleCustomAmounts() {
+            const isCustom = customRadio.checked;
+            
+            customAmountCells.forEach(cell => {
+                cell.style.display = isCustom ? 'table-cell' : 'none';
+            });
+            
+            if (isCustom) {
+                calculateTotalAmount();
+            }
+        }
+        
+        // Function to calculate equal split
+        function calculateEqualSplit() {
+            const checkedMembers = document.querySelectorAll('.member-checkbox:checked');
+            if (checkedMembers.length === 0) return;
+            
+            const equalAmount = billAmount / checkedMembers.length;
+            
+            amountInputs.forEach(input => {
+                const memberId = input.id.split('_')[1];
+                const isChecked = document.getElementById(`member_${memberId}`).checked;
+                
+                input.value = isChecked ? equalAmount.toFixed(2) : '';
+            });
+            
+            calculateTotalAmount();
+        }
+        
+        // Function to calculate total amount
+        function calculateTotalAmount() {
+            let total = 0;
+            
+            amountInputs.forEach(input => {
+                const memberId = input.id.split('_')[1];
+                const isChecked = document.getElementById(`member_${memberId}`).checked;
+                
+                if (isChecked && input.value) {
+                    total += parseFloat(input.value);
+                }
+            });
+            
+            totalAmountSpan.textContent = total.toFixed(2);
+            
+            // Show warning if total doesn't match bill amount
+            if (Math.abs(total - billAmount) > 0.01) {
+                amountWarning.style.display = 'table-row';
+            } else {
+                amountWarning.style.display = 'none';
+            }
+        }
+        
+        // Add event listeners
+        equalRadio.addEventListener('change', toggleCustomAmounts);
+        customRadio.addEventListener('change', toggleCustomAmounts);
+        
+        // Member checkbox change event
+        document.querySelectorAll('.member-checkbox').forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                if (equalRadio.checked) {
+                    calculateEqualSplit();
+                } else {
+                    calculateTotalAmount();
+                }
+            });
+        });
+        
+        // Amount input change event
+        amountInputs.forEach(input => {
+            input.addEventListener('input', calculateTotalAmount);
+        });
+        
+        // Initialize the form based on the selected split type
+        toggleCustomAmounts();
+        if (equalRadio.checked) {
+            calculateEqualSplit();
+        }
+    });
+</script>
+{% endblock %} 
