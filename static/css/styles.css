@@ -2,6 +2,7 @@
 body {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   padding-bottom: 60px; /* Add padding for mobile footer */
+  overflow-x: hidden; /* Prevent horizontal scroll on mobile */
 }
 
 /* Responsive container padding */
@@ -15,6 +16,15 @@ body {
     padding-left: 10px;
     padding-right: 10px;
   }
+  
+  body {
+    padding-top: 60px; /* Add space for mobile menu button */
+  }
+  
+  .main-content {
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+  }
 }
 
 /* Card improvements */
@@ -22,11 +32,14 @@ body {
   border-radius: 12px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   margin-bottom: 20px;
+  overflow: hidden; /* Ensure content doesn't break radius */
 }
 
 .card-header {
   border-radius: 12px 12px 0 0 !important;
   padding: 15px;
+  background: #fff;
+  border-bottom: 1px solid rgba(0,0,0,0.1);
 }
 
 .card-body {
@@ -37,6 +50,10 @@ body {
   .card-body {
     padding: 15px;
   }
+  
+  .card {
+    margin-bottom: 15px;
+  }
 }
 
 /* Button styles */
@@ -45,6 +62,14 @@ body {
   border-radius: 8px;
   font-weight: 500;
   transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.btn i {
+  font-size: 1.1em;
 }
 
 .btn-success {
@@ -83,6 +108,7 @@ body {
   margin-bottom: 10px;
   background: white;
   border: 1px solid #e9ecef;
+  cursor: pointer;
 }
 
 .payment-options .form-check:hover {
@@ -100,6 +126,7 @@ body {
   align-items: center;
   gap: 10px;
   font-weight: 500;
+  cursor: pointer;
 }
 
 /* QR code container */
@@ -155,6 +182,22 @@ body {
     max-width: 200px;
     padding: 15px;
   }
+  
+  /* Improve table responsiveness */
+  .table-responsive {
+    margin: 0 -15px;
+    padding: 0 15px;
+    width: calc(100% + 30px);
+  }
+  
+  /* Adjust headings for mobile */
+  h1.h2 {
+    font-size: 1.5rem;
+  }
+  
+  h5 {
+    font-size: 1.1rem;
+  }
 }
 
 /* Form improvements */
@@ -162,6 +205,7 @@ body {
   border-radius: 8px;
   padding: 10px 15px;
   border: 1px solid #ced4da;
+  transition: all 0.3s ease;
 }
 
 .form-control:focus {
@@ -183,9 +227,69 @@ body {
   background-color: transparent;
 }
 
+.table th {
+  font-weight: 600;
+  border-bottom-width: 1px;
+}
+
+.table td {
+  vertical-align: middle;
+}
+
 @media (max-width: 768px) {
   .table-responsive {
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  }
+  
+  /* Stack table on mobile */
+  .table-stack-mobile {
+    display: block;
+  }
+  
+  .table-stack-mobile thead {
+    display: none;
+  }
+  
+  .table-stack-mobile tr {
+    display: block;
+    border-bottom: 2px solid #dee2e6;
+    margin-bottom: 1rem;
+  }
+  
+  .table-stack-mobile td {
+    display: block;
+    text-align: right;
+    padding: 0.5rem;
+    border: none;
+  }
+  
+  .table-stack-mobile td::before {
+    content: attr(data-label);
+    float: left;
+    font-weight: 600;
+  }
+}
+
+/* Back button improvements */
+.back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  border-radius: 8px;
+  margin-bottom: 10px;
+}
+
+.back-btn i {
+  font-size: 1.1em;
+}
+
+@media (max-width: 768px) {
+  .back-btn {
+    margin-right: 0;
+    margin-bottom: 15px;
   }
 } 
