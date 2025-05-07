@@ -276,131 +276,94 @@ def bill_detail(request, bill_id):
 def pay_bill(request, split_id):
     bill_split = get_object_or_404(BillSplit, id=split_id)
     
-    # Check if user is the one who needs to pay
+    # Check if user is authorized to pay this bill
     if bill_split.user != request.user:
-        messages.error(request, 'You can only pay your own bills.')
+        messages.error(request, 'You are not authorized to pay this bill.')
         return redirect('dashboard')
     
-    # Check if bill creator is the same as the payer (user shouldn't pay themselves)
-    if bill_split.bill.created_by == request.user:
-        messages.error(request, 'You cannot pay yourself for a bill you created.')
-        return redirect('dashboard')
+    # Check if bill is already paid
+    if bill_split.is_paid:
+        messages.warning(request, 'This bill has already been paid.')
+        return redirect('bill_detail', bill_id=bill_split.bill.id)
     
-    # Get recipient's UPI ID from their profile
-    recipient = bill_split.bill.created_by
-    recipient_upi_id = recipient.profile.upi_id if hasattr(recipient, 'profile') else None
+    # Get recipient's UPI ID
+    recipient_upi_id = bill_split.bill.created_by.profile.upi_id
     
     if request.method == 'POST':
-        form = PaymentForm(request.POST, user=request.user)
+        form = PaymentForm(request.POST)
         if form.is_valid():
             payment_method = form.cleaned_data['payment_method']
             
-            # Use recipient's UPI ID for payment
-            upi_id = recipient_upi_id
-            
-            # Create a payment record
+            # Create payment record
             payment = Payment.objects.create(
-                payer=request.user,
-                recipient=recipient,
-                amount=bill_split.amount,
                 bill_split=bill_split,
+                amount=bill_split.amount,
                 payment_method=payment_method,
-                upi_id=upi_id if payment_method == 'UPI' else None
+                status='PENDING'
             )
             
-            # Mark the bill split as paid
-            bill_split.mark_as_paid()
-            
-            messages.success(request, f'Payment for {bill_split.bill.title} initiated!')
-            
-            # Pass payment info to redirect view
-            return redirect('payment_redirect', payment_id=payment.id)
+            if payment_method == 'UPI' and recipient_upi_id:
+                # Generate UPI payment URL with proper parameters
+                upi_url = f"upi://pay?pa={recipient_upi_id}&pn={bill_split.bill.created_by.get_full_name() or bill_split.bill.created_by.username}&am={bill_split.amount}&cu=INR&tn=Bill Splitter Payment - {bill_split.bill.title}"
+                # URL encode the parameters
+                upi_url = quote(upi_url)
+                
+                # Store payment ID in session for verification
+                request.session['pending_payment_id'] = payment.id
+                
+                # Redirect to payment page
+                return redirect('payment_redirect', payment_id=payment.id)
+            else:
+                # Handle other payment methods
+                messages.info(request, f'Please complete the payment using {payment_method}.')
+                return redirect('payment_redirect', payment_id=payment.id)
     else:
-        form = PaymentForm(user=request.user, initial={'amount': bill_split.amount})
+        form = PaymentForm()
     
     context = {
-        'form': form,
         'bill_split': bill_split,
+        'form': form,
         'recipient_upi_id': recipient_upi_id
     }
     return render(request, 'bills/pay_bill.html', context)
 
 @login_required
 def payment_redirect(request, payment_id):
-    # Get payment info
     payment = get_object_or_404(Payment, id=payment_id)
-    bill_split = payment.bill_split
     
-    # Create payment links based on payment method
-    payment_urls = {
-        'AMAZON': 'https://www.amazon.in/amazonpay/home',
-        'GPAY': 'https://pay.google.com',
-        'PAYTM': 'https://paytm.com',
-        'OTHER': 'dashboard',
-    }
+    # Verify this is the correct user
+    if payment.bill_split.user != request.user:
+        messages.error(request, 'You are not authorized to view this payment.')
+        return redirect('dashboard')
     
-    # Generate UPI payment link if UPI payment method is selected
-    if payment.payment_method == 'UPI' and payment.upi_id:
-        # Format the payment details
-        bill_title = quote(f"Payment for {bill_split.bill.title}")
-        pa = quote(payment.upi_id)
-        pn = quote(payment.recipient.username)
-        am = payment.amount
-        
-        # Create multiple UPI deep link formats for better compatibility
-        upi_links = {
-            'standard': f"upi://pay?pa={pa}&pn={pn}&am={am}&cu=INR&tn={bill_title}",
-            'gpay': f"https://pay.google.com/gp/v/save/{pa}?pa={pa}&pn={pn}&am={am}&cu=INR&tn={bill_title}",
-            'phonepe': f"phonepe://pay?pa={pa}&pn={pn}&am={am}&cu=INR&tn={bill_title}",
-            'paytm': f"paytm://pay?pa={pa}&pn={pn}&am={am}&cu=INR&tn={bill_title}"
-        }
+    # Get recipient's UPI ID
+    recipient_upi_id = payment.bill_split.bill.created_by.profile.upi_id
+    
+    if payment.payment_method == 'UPI' and recipient_upi_id:
+        # Generate UPI payment URL with proper parameters
+        upi_url = f"upi://pay?pa={recipient_upi_id}&pn={payment.bill_split.bill.created_by.get_full_name() or payment.bill_split.bill.created_by.username}&am={payment.amount}&cu=INR&tn=Bill Splitter Payment - {payment.bill_split.bill.title}"
+        # URL encode the parameters
+        upi_url = quote(upi_url)
         
         # Generate QR code for UPI payment
-        qr = qrcode.QRCode(
-            version=1,
-            error_correction=qrcode.constants.ERROR_CORRECT_L,
-            box_size=10,
-            border=4,
-        )
-        qr.add_data(upi_links['standard'])
+        qr = qrcode.QRCode(version=1, box_size=10, border=5)
+        qr.add_data(upi_url)
         qr.make(fit=True)
+        qr_img = qr.make_image(fill_color="black", back_color="white")
         
-        img = qr.make_image(fill_color="black", back_color="white")
+        # Convert QR code to base64
         buffer = io.BytesIO()
-        img.save(buffer, format="PNG")
-        qr_code_base64 = base64.b64encode(buffer.getvalue()).decode()
+        qr_img.save(buffer, format='PNG')
+        qr_base64 = base64.b64encode(buffer.getvalue()).decode()
         
-        # Check if request is likely from a mobile device using User-Agent
-        user_agent = request.META.get('HTTP_USER_AGENT', '').lower()
-        is_mobile = any(x in user_agent for x in ['android', 'iphone', 'mobile', 'mobi'])
-        
-        if is_mobile:
-            # On mobile, use native UPI app link
-            payment_url = upi_links['standard']
-            fallback_url = upi_links['gpay']
-        else:
-            # On desktop, prefer web-based options
-            payment_url = upi_links['gpay']  # Web GPay as primary for desktop
-            fallback_url = upi_links['standard'] 
-    else:
-        payment_url = payment_urls.get(payment.payment_method, 'dashboard')
-        fallback_url = None
-        upi_links = None
-        user_agent = request.META.get('HTTP_USER_AGENT', '').lower()
-        is_mobile = any(x in user_agent for x in ['android', 'iphone', 'mobile', 'mobi'])
-        qr_code_base64 = None
-    
-    context = {
-        'payment': payment,
-        'bill_split': bill_split,
-        'payment_url': payment_url,
-        'fallback_url': fallback_url,
-        'upi_links': upi_links,
-        'qr_code_base64': qr_code_base64,
-        'debug_info': {
-            'user_agent': request.META.get('HTTP_USER_AGENT', 'Unknown'),
-            'is_mobile': is_mobile,
-            'platform': request.META.get('HTTP_SEC_CH_UA_PLATFORM', 'Unknown').replace('"', '')
+        context = {
+            'payment': payment,
+            'upi_url': upi_url,
+            'qr_code': qr_base64,
+            'recipient_upi_id': recipient_upi_id
         }
-    }
-    return render(request, 'bills/payment_redirect.html', context)
+        return render(request, 'bills/payment_redirect.html', context)
+    else:
+        # Handle other payment methods
+        messages.info(request, f'Please complete the payment using {payment.payment_method}.')
+        return redirect('bill_detail', bill_id=payment.bill_split.bill.id)

@@ -1,148 +1,94 @@
 {% extends 'bills/base.html' %}
 
-{% block title %}Payment | Bill Splitter{% endblock %}
+{% block title %}Complete Payment | Bill Splitter{% endblock %}
 
-{% block header %}Payment Redirect{% endblock %}
+{% block header %}Complete Payment{% endblock %}
 
 {% block content %}
 <div class="row">
     <div class="col-md-8 mx-auto">
         <div class="card shadow">
-            <div class="card-header py-3 bg-success text-white">
-                <h6 class="m-0 font-weight-bold">Payment Initiated</h6>
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Payment Details</h6>
             </div>
-            <div class="card-body text-center p-5">
-                <i class="fas fa-money-bill-wave fa-5x text-success mb-4"></i>
-                <h3>Your payment has been initiated</h3>
-                
-                <div class="alert alert-info" role="alert">
-                    <p class="lead mb-0">Amount: ₹{{ payment.amount }}</p>
-                    {% if payment.upi_id %}
-                    <p>Pay to UPI ID: {{ payment.upi_id }}</p>
-                    {% elif payment.payment_method == 'UPI' %}
-                    <div class="alert alert-warning mt-2">
-                        <p class="small mb-0">The recipient hasn't set a UPI ID. Please use another payment method or ask them to update their UPI ID.</p>
+            <div class="card-body">
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <h5>Bill Information</h5>
+                        <p><strong>Title:</strong> {{ payment.bill_split.bill.title }}</p>
+                        <p><strong>Amount:</strong> ₹{{ payment.amount }}</p>
+                        <p><strong>Recipient:</strong> {{ payment.bill_split.bill.created_by.get_full_name|default:payment.bill_split.bill.created_by.username }}</p>
+                        <p><strong>Status:</strong> 
+                            <span class="badge bg-warning">Pending</span>
+                        </p>
                     </div>
-                    {% endif %}
                 </div>
-                
-                {% if payment.payment_method == 'UPI' and payment.upi_id %}
-                <div class="my-4">
-                    <div class="alert alert-warning" role="alert">
-                        <p><strong>Note:</strong> If one payment method doesn't work, try another option below.</p>
+
+                {% if payment.payment_method == 'UPI' %}
+                <div class="text-center mb-4">
+                    <h5 class="mb-3">Scan QR Code to Pay</h5>
+                    <div class="qr-container">
+                        <img src="data:image/png;base64,{{ qr_code }}" alt="UPI QR Code" class="img-fluid">
                     </div>
-                    
-                    {% if qr_code_base64 %}
-                    <!-- QR Code Option -->
-                    <div class="mb-4">
-                        <h5>Scan QR code to pay:</h5>
-                        <div class="text-center my-3">
-                            <img src="data:image/png;base64,{{ qr_code_base64 }}" class="img-fluid" style="max-width: 200px;" alt="QR Code for UPI Payment">
-                        </div>
-                        <p class="small text-muted">Open any UPI app and scan this code</p>
+                    <p class="mt-3 text-muted">Or use the UPI ID below:</p>
+                    <div class="input-group mb-3">
+                        <input type="text" class="form-control" value="{{ recipient_upi_id }}" id="upiId" readonly>
+                        <button class="btn btn-outline-primary" type="button" onclick="copyUpiId()">
+                            <i class="fas fa-copy"></i>
+                        </button>
                     </div>
-                    <hr>
-                    {% endif %}
-                    
-                    <a href="{{ payment_url }}" id="redirect-link" class="btn btn-lg btn-success mb-3">
-                        <i class="fas fa-mobile-alt mr-2"></i> Click to Pay via UPI
+                </div>
+
+                <div class="text-center">
+                    <a href="{{ upi_url }}" class="btn btn-success btn-lg mb-3" id="upiPayButton">
+                        <i class="fas fa-mobile-alt me-2"></i> Pay with UPI App
                     </a>
-                    
-                    <!-- Additional payment options -->
-                    <div class="mt-3 pt-3 border-top">
-                        <h5>Try specific payment apps:</h5>
-                        <div class="d-flex flex-wrap justify-content-center mt-3">
-                            <a href="{{ upi_links.gpay }}" class="btn btn-outline-primary m-2">
-                                <i class="fab fa-google-pay"></i> Google Pay
-                            </a>
-                            <a href="{{ upi_links.phonepe }}" class="btn btn-outline-primary m-2">
-                                <i class="fas fa-mobile-alt"></i> PhonePe
-                            </a>
-                            <a href="{{ upi_links.paytm }}" class="btn btn-outline-primary m-2">
-                                <i class="fas fa-wallet"></i> Paytm
-                            </a>
-                        </div>
-                    </div>
-                    
-                    <!-- Copy UPI ID option -->
-                    <div class="mt-3 pt-3 border-top">
-                        <h5>Or pay directly using this UPI ID:</h5>
-                        <div class="input-group">
-                            <input type="text" class="form-control" value="{{ payment.upi_id }}" id="upiIdInput" readonly>
-                            <button class="btn btn-outline-secondary" type="button" onclick="copyUpiId()">
-                                <i class="fas fa-copy"></i> Copy
-                            </button>
-                        </div>
-                        <small class="text-muted mt-2">Open any UPI payment app and use this ID</small>
-                    </div>
+                    <p class="text-muted small">
+                        Click the button above to open your UPI app and complete the payment.
+                        After payment, please mark it as paid in the app.
+                    </p>
                 </div>
                 {% else %}
-                <p class="lead">You will now be redirected to {{ payment.payment_method|title }} to complete the transaction.</p>
-                <div class="progress mb-3">
-                    <div class="progress-bar progress-bar-striped progress-bar-animated bg-success" role="progressbar" style="width: 100%" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>
+                <div class="text-center">
+                    <p class="mb-4">Please complete the payment using {{ payment.payment_method }}.</p>
+                    <a href="{% url 'bill_detail' payment.bill_split.bill.id %}" class="btn btn-primary">
+                        <i class="fas fa-arrow-left me-2"></i> Back to Bill
+                    </a>
                 </div>
-                <p>If you're not redirected automatically, <a href="{{ payment_url }}" id="redirect-link">click here</a>.</p>
                 {% endif %}
-                
-                <a href="{% url 'dashboard' %}" class="btn btn-primary mt-3">
-                    <i class="fas fa-home"></i> Return to Dashboard
-                </a>
-                
-                <!-- Technical Details (Collapsible) -->
-                <div class="mt-4 text-left">
-                    <p>
-                        <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#debugInfo">
-                            Show Technical Details
-                        </button>
-                    </p>
-                    <div class="collapse" id="debugInfo">
-                        <div class="card card-body bg-light">
-                            <h6>Debug Information:</h6>
-                            <ul class="list-unstyled small">
-                                <li><strong>Payment ID:</strong> {{ payment.id }}</li>
-                                <li><strong>UPI ID:</strong> {{ payment.upi_id }}</li>
-                                <li><strong>Platform:</strong> {{ debug_info.platform }}</li>
-                                <li><strong>Mobile Device:</strong> {{ debug_info.is_mobile }}</li>
-                            </ul>
-                            {% if upi_links %}
-                            <h6>UPI Links:</h6>
-                            <ul class="list-unstyled small">
-                                <li><strong>Standard:</strong> <code>{{ upi_links.standard }}</code></li>
-                                <li><strong>GPay Web:</strong> <code>{{ upi_links.gpay }}</code></li>
-                            </ul>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
             </div>
         </div>
     </div>
 </div>
-{% endblock %}
 
-{% block extra_js %}
+{% if payment.payment_method == 'UPI' %}
 <script>
-    // For non-UPI payment methods, redirect automatically
-    {% if payment.payment_method != 'UPI' %}
-    setTimeout(function() {
-        document.getElementById('redirect-link').click();
-    }, 3000);
-    {% endif %}
+function copyUpiId() {
+    var upiId = document.getElementById('upiId');
+    upiId.select();
+    document.execCommand('copy');
     
-    // Function to copy UPI ID to clipboard
-    function copyUpiId() {
-        var copyText = document.getElementById("upiIdInput");
-        copyText.select();
-        copyText.setSelectionRange(0, 99999);
-        document.execCommand("copy");
-        
-        // Show feedback
-        var button = event.currentTarget;
-        var originalText = button.innerHTML;
-        button.innerHTML = '<i class="fas fa-check"></i> Copied!';
-        setTimeout(function() {
-            button.innerHTML = originalText;
-        }, 2000);
+    // Show feedback
+    var button = event.target.closest('button');
+    var originalHtml = button.innerHTML;
+    button.innerHTML = '<i class="fas fa-check"></i>';
+    setTimeout(function() {
+        button.innerHTML = originalHtml;
+    }, 2000);
+}
+
+// Check if the device is mobile
+function isMobile() {
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+}
+
+// Handle UPI button click
+document.getElementById('upiPayButton').addEventListener('click', function(e) {
+    if (!isMobile()) {
+        e.preventDefault();
+        alert('Please use a mobile device to make UPI payments.');
     }
+});
 </script>
+{% endif %}
 {% endblock %} 
