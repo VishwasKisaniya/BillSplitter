@@ -1,6 +1,8 @@
 # Bill Splitter App
 
 A web application to split bills among friends, track payments, and send UPI payment requests.
+# Deployed URL:
+https://billsplitter-yzhj.onrender.com
 
 ## Features
 
